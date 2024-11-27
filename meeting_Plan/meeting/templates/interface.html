@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Room Booking Interface</title>
+</head>
+<body>
+    <h1>Room Booking Application</h1>
+
+    <!-- Room List -->
+    <h2>Available Rooms</h2>
+    <ul>
+        {% for room in rooms %}
+            <li>
+                <strong>{{ room.name }}</strong> - Capacity: {{ room.capacity }}
+                {% if room.has_projector %} | Projector{% endif %}
+                {% if room.has_video_conferencing %} | Video Conferencing{% endif %}
+                | Internet Speed: {{ room.internet_speed_mbps }} Mbps
+            </li>
+        {% endfor %}
+    </ul>
+
+    <!-- Meeting List -->
+    <h2>Meetings</h2>
+    <ul>
+        {% for meeting in meetings %}
+            <li>
+                <strong>{{ meeting.Title }}</strong> on {{ meeting.Date }} at {{ meeting.start_time }}
+                in room {{ meeting.room.name }} for {{ meeting.Duration }} hours.
+            </li>
+        {% endfor %}
+    </ul>
+
+    <!-- Meeting Booking Form -->
+    <h2>Book a Meeting</h2>
+    <!-- <form method="post" action="/api/meetings/"> -->
+    <form method="post" action="{% url 'meetings-list' %}">
+        {% csrf_token %}
+        <label for="Title">Title:</label>
+        <input type="text" name="Title" id="Title" required><br>
+
+        <label for="Date">Date:</label>
+        <input type="date" name="Date" id="Date" required><br>
+
+        <label for="start_time">Start Time:</label>
+        <input type="time" name="start_time" id="start_time" required><br>
+
+        <label for="Duration">Duration (Hrs):</label>
+        <input type="number" step="0.5" name="Duration" id="Duration" required><br>
+
+        <label for="room">Room:</label>
+        <select name="room" id="room" required>
+            {% for room in rooms %}
+                <option value="{{ room.id }}">{{ room.name }}</option>
+            {% endfor %}
+        </select><br>
+
+        <button type="submit">Book Meeting</button>
+    </form>
+    <div id="response-message" style="display:none;">
+        <p id="error-message"></p>
+        <p id="next-available-time"></p>
+    </div>
+    
+    <script>
+    document.getElementById('meeting-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const title = document.getElementById('title').value;
+        const date = document.getElementById('date').value;
+        const start_time = document.getElementById('start_time').value;
+        const room = document.getElementById('room').value;
+    
+        const data = {
+            Title: title,
+            Date: date,
+            start_time: start_time,
+            room: room
+        };
+    
+        fetch('http://127.0.0.1:8000/api/meetings/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                // Show error and next available time
+                document.getElementById('response-message').style.display = 'block';
+                document.getElementById('error-message').innerText = data.error;
+                document.getElementById('next-available-time').innerText = `Next available time: ${data.next_available}`;
+            } else {
+                // If meeting is booked successfully, show confirmation message (or redirect)
+                alert("Meeting successfully booked!");
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+        });
+    });
+    </script>
+</body>
+</html>
